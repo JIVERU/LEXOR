@@ -8,8 +8,8 @@ import java.util.*;
 public class Lexer {
     private final ErrorManager errorManager;
     private final String source;
-    private List<Token> tokens = new ArrayList<>();
-    private static Map<String, TokenType> keywords;
+    private final List<Token> tokens = new ArrayList<>();
+    private static final Map<String, TokenType> keywords;
     private int start = 0;
     private int current = 0;
     private int line = 1;
@@ -68,8 +68,8 @@ public class Lexer {
             case '*': addToken(TokenType.STAR); break;
             case '/': addToken(TokenType.SLASH); break;
             case ',': addToken(TokenType.COMMA); break;
-            case '&': addToken(TokenType.CONCAT); break;
-            case '$': addToken(TokenType.CARRIAGE_RETURN); break;
+            case '&': addToken(TokenType.AMPERSAND); break;
+            case '$': addToken(TokenType.DOLLAR, '\n'); break;
             case '=': addToken(match('=') ? TokenType.EQUAL_EQUAL : TokenType.EQUAL); break;
             case '>': addToken(match('=') ? TokenType.GREATER_EQUAL : TokenType.GREATER); break;
             case '<':
@@ -94,7 +94,7 @@ public class Lexer {
             case ' ':
             case '\r':
             case '\t': break;
-            case '\n': line++; break;
+            case '\n': addToken(TokenType.NEWLINE); line++; column = 0; break;
             default:
                 if(isDigit(c)){
                     number();
@@ -152,7 +152,13 @@ public class Lexer {
         }
 
         advance();
-        addToken(TokenType.STRING_LITERAL, value.toString());
+        if(value.toString().equals("TRUE")){
+            addToken(TokenType.TRUE);
+        }else if(value.toString().equals("FALSE")){
+            addToken(TokenType.FALSE);
+        }else{
+            addToken(TokenType.STRING_LITERAL, value.toString());
+        }
     }
 
     private void escapeSequence(){

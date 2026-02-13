@@ -24,16 +24,20 @@ public class ErrorManager {
         report(line, column,"", message, ErrorType.SYNTAX);
     }
 
-    public void error(Token token, String message) {
+    public void syntaxError(Token token, String message) {
         if (token.type() == TokenType.EOF) {
             report(token.line(), token.column(), " at end", message, ErrorType.SYNTAX);
         } else {
+            if( token.type() == TokenType.NEWLINE){
+                report(token.line(), token.column(), " at the end of statement", message, ErrorType.SYNTAX);
+            }
             report(token.line(), token.column(), " at '" + token.lexeme() + "'", message, ErrorType.SYNTAX);
         }
+        hadError = true;
     }
 
     public void runtimeError(RuntimeError error) {
-        System.err.println(error.getMessage() + "\n[line " + error.getToken().line() + "]");
+        report(error.getToken().line(), error.getToken().column(), " at '" + error.getToken().lexeme() + "'", error.getMessage(), ErrorType.RUNTIME);
         errors.add(new Error(
                 error.getMessage(),
                 error.getToken().line(),
@@ -45,7 +49,7 @@ public class ErrorManager {
     }
 
     private void report(int line, int column, String where, String message, ErrorType type) {
-        System.err.printf("[line %d] Error%s: %s%n", line, where, message);
+        System.err.printf("[line %d] %s ERROR%s: %s%n", line, type.toString(), where, message);
 //        printVisualLocation(column);
         errors.add(new Error(message, line, column, type));
 
@@ -61,8 +65,8 @@ public class ErrorManager {
         }
     }
 
-    public boolean hasErrors() {
-        return !errors.isEmpty();
+    public boolean hadErrors() {
+        return hadError;
     }
 
     public boolean hadRuntimeError() {

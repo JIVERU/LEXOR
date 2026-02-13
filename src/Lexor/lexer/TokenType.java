@@ -2,9 +2,10 @@ package Lexor.lexer;
 
 public enum TokenType {
     // Single-character tokens.
-    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-    MINUS, PLUS, SLASH, STAR, MOD, CONCAT, CARRIAGE_RETURN,
-    COMMA, COLON,
+    LEFT_PAREN, RIGHT_PAREN,
+    MINUS, PLUS, SLASH, STAR, MOD,
+    AMPERSAND, DOLLAR, COMMA, COLON,
+    NEWLINE,
 
     // One or two character tokens.
     EQUAL, EQUAL_EQUAL,
@@ -12,11 +13,12 @@ public enum TokenType {
     LESS, LESS_EQUAL,
 
     // Literals.
-    IDENTIFIER, FLOAT_LITERAL, INTEGER_LITERAL, CHAR_LITERAL, STRING_LITERAL,
+    IDENTIFIER, FLOAT_LITERAL, INTEGER_LITERAL,
+    CHAR_LITERAL, STRING_LITERAL,
 
     // Type keywords
-    INT_TYPE, FLOAT_TYPE, CHAR_TYPE, STRING_TYPE, BOOL_TYPE,
-
+    INT_TYPE, FLOAT_TYPE, CHAR_TYPE,
+    STRING_TYPE, BOOL_TYPE,
 
     // keywords
     SCRIPT, AREA, START, END,
