@@ -12,7 +12,7 @@ public class Environment {
     private final Environment enclosing;
     private final Map<String, Variable> values = new HashMap<>();
 
-    public Environment(ErrorManager errorManager){
+    public Environment(){
         this.enclosing = null;
     }
 

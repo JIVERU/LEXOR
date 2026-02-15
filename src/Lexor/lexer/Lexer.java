@@ -7,7 +7,7 @@ import java.util.*;
 
 public class Lexer {
     private final ErrorManager errorManager;
-    private String source;
+    private final String source;
     private final List<Token> tokens = new ArrayList<>();
     private static final Map<String, TokenType> keywords;
     private int start = 0;

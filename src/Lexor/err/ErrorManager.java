@@ -42,7 +42,6 @@ public class ErrorManager {
             report(0, 0, "", error.getMessage(), ErrorType.RUNTIME);
             errors.add(new Error(error.getMessage(), 0, 0, ErrorType.RUNTIME));
         }else{
-            String lexeme;
             if(error.getToken().type() == TokenType.NEWLINE){
                 report(error.getToken().line(), error.getToken().column(), " at end of line", error.getMessage(), ErrorType.RUNTIME);
             }else {
@@ -68,14 +67,14 @@ public class ErrorManager {
         hadError = true;
     }
 
-    private void printVisualLocation(int column) {
-        if (column > 0) {
-            for (int i = 0; i < column - 1; i++) {
-                System.err.print("~");
-            }
-            System.err.println("^"); // Use println to end the line
-        }
-    }
+//    private void printVisualLocation(int column) {
+//        if (column > 0) {
+//            for (int i = 0; i < column - 1; i++) {
+//                System.err.print("~");
+//            }
+//            System.err.println("^"); // Use println to end the line
+//        }
+//    }
 
     public boolean hadError() {
         return hadError;

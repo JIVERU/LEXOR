@@ -17,7 +17,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Environment environment;
 
     public Interpreter(ErrorManager errorManager) {
-        this.environment = new Environment(errorManager);
+        this.environment = new Environment();
         this.errorManager = errorManager;
     }
 

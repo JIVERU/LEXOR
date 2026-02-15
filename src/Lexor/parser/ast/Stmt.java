@@ -1,7 +1,6 @@
 package Lexor.parser.ast;
 import Lexor.lexer.TokenType;
 
-import java.io.IOException;
 import java.util.List;
 import Lexor.lexer.Token;
 
@@ -27,8 +26,8 @@ public abstract class Stmt {
         }
 
         @Override
-        public <R> R accept(Visitor<R> visitor) {
-        return visitor.visitIfStmt(this);
+        public <R> void accept(Visitor<R> visitor) {
+            visitor.visitIfStmt(this);
         }
     }
     public static class When extends Stmt {
@@ -41,8 +40,8 @@ public abstract class Stmt {
         }
 
         @Override
-        public <R> R accept(Visitor<R> visitor) {
-        return visitor.visitWhenStmt(this);
+        public <R> void accept(Visitor<R> visitor) {
+            visitor.visitWhenStmt(this);
         }
     }
     public static class Block extends Stmt {
@@ -53,8 +52,8 @@ public abstract class Stmt {
         }
 
         @Override
-        public <R> R accept(Visitor<R> visitor) {
-        return visitor.visitBlockStmt(this);
+        public <R> void accept(Visitor<R> visitor) {
+            visitor.visitBlockStmt(this);
         }
     }
     public static class Expression extends Stmt {
@@ -65,8 +64,8 @@ public abstract class Stmt {
         }
 
         @Override
-        public <R> R accept(Visitor<R> visitor) {
-        return visitor.visitExpressionStmt(this);
+        public <R> void accept(Visitor<R> visitor) {
+            visitor.visitExpressionStmt(this);
         }
     }
     public static class Print extends Stmt {
@@ -77,8 +76,8 @@ public abstract class Stmt {
         }
 
         @Override
-        public <R> R accept(Visitor<R> visitor) {
-        return visitor.visitPrintStmt(this);
+        public <R> void accept(Visitor<R> visitor) {
+            visitor.visitPrintStmt(this);
         }
     }
     public static class Scan extends Stmt {
@@ -89,8 +88,8 @@ public abstract class Stmt {
         }
 
         @Override
-        public <R> R accept(Visitor<R> visitor) {
-        return visitor.visitScanStmt(this);
+        public <R> void accept(Visitor<R> visitor) {
+            visitor.visitScanStmt(this);
         }
     }
     public static class Declare extends Stmt {
@@ -105,9 +104,9 @@ public abstract class Stmt {
         }
 
         @Override
-        public <R> R accept(Visitor<R> visitor) {
-        return visitor.visitDeclareStmt(this);
+        public <R> void accept(Visitor<R> visitor) {
+            visitor.visitDeclareStmt(this);
         }
     }
-    public abstract <R> R accept(Visitor<R> visitor);
+    public abstract <R> void accept(Visitor<R> visitor);
 }
