@@ -7,8 +7,8 @@ import Lexor.lexer.TokenType;
 import Lexor.parser.ast.Expr;
 import Lexor.parser.ast.Stmt;
 
-import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Parser {
@@ -36,32 +36,25 @@ public class Parser {
     }
 
     private void parseHeader() {
-        consumeNewlines();
-        keywordsMatch(
-                "Expected 'SCRIPT AREA' at the start of file",
+        while(check(TokenType.NEWLINE)) advance();
+        consumeKeywords(
+                 "Expected 'SCRIPT AREA' at the start of file",
                 TokenType.SCRIPT, TokenType.AREA
         );
-
-        consumeNewlines();
-        keywordsMatch(
+        consumeKeywords(
                 "Expected 'START SCRIPT' after 'SCRIPT AREA'",
                 TokenType.START, TokenType.SCRIPT
         );
     }
 
     private void parseDeclarations(List<Stmt> statements) {
-        consumeNewlines();
-
-        while (check(TokenType.DECLARE) && !isAtEnd()) {
+        while (match(TokenType.DECLARE) && !isAtEnd()) {
             statements.add(varDeclaration());
-            consumeNewlines();
         }
     }
 
     private void parseExecutableStatements(List<Stmt> statements) {
         while (!check(TokenType.END) && !isAtEnd()) {
-            consumeNewlines();
-
             if (check(TokenType.DECLARE)) {
                 throw error(peek(), "Expected declaration before executable statements.");
             }
@@ -71,25 +64,21 @@ public class Parser {
     }
 
     private void parseFooter() {
-        keywordsMatch(
+        consumeKeywords(
                 "Expected 'END SCRIPT' to finish program",
                 TokenType.END, TokenType.SCRIPT
         );
-        consumeNewlines();
+        if(tokens.get(current).type() != TokenType.EOF){
+            throw error(peek(), "Expected end of file.");
+        }
     }
 
 
     private Stmt declaration() {
-        try {
-            return statement();
-        } catch (ParseError error) {
-            synchronize();
-            return null;
-        }
+        return statement();
     }
 
     private Stmt varDeclaration() {
-        consume(TokenType.DECLARE, "Expected 'DECLARE'");
         if(!match(
                 TokenType.INT_TYPE,
                 TokenType.STRING_TYPE,
@@ -104,14 +93,19 @@ public class Parser {
         do{
             names.add(consume(TokenType.IDENTIFIER, "Expected variable name."));
             initializer = null;
-            if(match(TokenType.EQUAL)) initializer = expression();
+            if(match(TokenType.EQUAL)){
+                initializer = expression();
+            }
             initializers.add(initializer);
-        }while(match(TokenType.COMMA));
-        consume(TokenType.NEWLINE, "Expected newline after variable declaration.");
+        } while(match(TokenType.COMMA));
+        consumeNewlines("Expected newline after variable declaration.");
         return new Stmt.Declare(names, initializers, type);
     }
 
     private Stmt statement() {
+        if(match(TokenType.IF)) return ifStatement();
+        if(match(TokenType.REPEAT)) return whenStatement();
+        if(match(TokenType.FOR)) return forStatement();
         if(match(TokenType.PRINT)){
             consume(TokenType.COLON, "Expected ':' after 'print'.");
             return printStatement();
@@ -119,15 +113,133 @@ public class Parser {
         return expressionStatement();
     }
 
+    private Stmt ifStatement(){
+        consume(TokenType.LEFT_PAREN, "Expected '(' after 'IF'.");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Expected ')' after if condition.");
+        consumeNewlines("Expected newline after condition.");
+
+        consumeKeywords("Expected 'START IF' at the end of condition block.", TokenType.START, TokenType.IF);
+        Stmt thenBranch = new Stmt.Block(ifBlock());
+        Stmt elseBranch = null;
+        if(match(TokenType.ELSE)){
+            if(match(TokenType.IF)){
+                elseBranch = ifStatement();
+            }else{
+                consumeNewlines("Expected newline after 'ELSE'.");
+                consumeKeywords("Expected 'START IF' after 'ELSE'.", TokenType.START, TokenType.IF);
+                elseBranch = new Stmt.Block(ifBlock());
+            }
+        }
+        return new Stmt.If(condition, thenBranch, elseBranch);
+    }
+
+    private List<Stmt> ifBlock(){
+        List<Stmt> statements = new ArrayList<>();
+        while(!check(TokenType.END) && !isAtEnd()) {
+            if (check(TokenType.NEWLINE)) {
+                advance();
+                continue;
+            }
+            statements.add(statement());
+        }
+        consumeKeywords("Expected 'END IF' at the end of condition block.", TokenType.END, TokenType.IF);
+        return statements;
+    }
+
+    private List<Stmt> whenBlock(){
+        List<Stmt> statements = new ArrayList<>();
+        while(!check(TokenType.END) && !isAtEnd()) {
+            if (check(TokenType.NEWLINE)) {
+                advance();
+                continue;
+            }
+            statements.add(statement());
+        }
+        consumeKeywords("Expected 'END REPEAT' at the end of condition block.", TokenType.END, TokenType.REPEAT);
+        return statements;
+    }
+
+    private List<Stmt> forBlock(){
+        List<Stmt> statements = new ArrayList<>();
+        while(!check(TokenType.END) && !isAtEnd()) {
+            if (check(TokenType.NEWLINE)) {
+                advance();
+                continue;
+            }
+            statements.add(statement());
+        }
+        consumeKeywords("Expected 'END FOR' at the end of condition block.", TokenType.END, TokenType.FOR);
+        return statements;
+    }
+
+    private Stmt whenStatement() {
+        consume(TokenType.WHEN, "Expected 'WHEN' after 'REPEAT'.");
+        consume(TokenType.LEFT_PAREN, "Expected '(' after 'WHEN'.");
+        Expr condition = expression();
+        consume(TokenType.RIGHT_PAREN, "Exprected ')' after condition.");
+        consumeNewlines("Expected newline after condition.");
+        consumeKeywords("Expected 'START REPEAT' at the end of condition block.", TokenType.START, TokenType.REPEAT);
+        Stmt body = new Stmt.Block(whenBlock());
+
+        return new Stmt.When(condition, body);
+    }
+
+    private Stmt forStatement() {
+        consume(TokenType.LEFT_PAREN, "Expected '(' after 'FOR'.");
+
+        Stmt initializer;
+        if (match(TokenType.COMMA)) {
+            initializer = null;
+        } else {
+            if (match(TokenType.DECLARE)) {
+                initializer = varDeclaration();
+            } else {
+                initializer = new Stmt.Expression(expression());
+            }
+            consume(TokenType.COMMA, "Expected ',' after loop initialization.");
+        }
+
+        Expr condition = null;
+        if (!check(TokenType.COMMA)) {
+            condition = expression();
+        }
+
+        consume(TokenType.COMMA, "Expected ',' after loop condition.");
+
+        Expr increment = null;
+        if (!check(TokenType.RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(TokenType.RIGHT_PAREN, "Expected ')' after clauses.");
+        consumeNewlines("Expected newline after clauses.");
+        consumeKeywords("Expected 'START FOR' to begin loop block.", TokenType.START, TokenType.FOR);
+        List<Stmt> statements = forBlock();
+        Stmt body = new Stmt.Block(statements);
+
+        if (increment != null) {
+            body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(increment)));
+        }
+
+        if (condition == null) condition = new Expr.Literal(true);
+        body = new Stmt.When(condition, body);
+
+        if (initializer != null) {
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
+    }
+
     private Stmt printStatement() {
         Expr value = expression();
-        consume(TokenType.NEWLINE, "Expected newline after value.");
+        consumeNewlines( "Expected newline after value.");
         return new Stmt.Print(value);
     }
 
     private Stmt expressionStatement() {
         Expr value = expression();
-        consume(TokenType.NEWLINE, "Expected newline after expression.");
+        consumeNewlines( "Expected newline after expression.");
         return new Stmt.Expression(value);
     }
 
@@ -136,7 +248,7 @@ public class Parser {
     }
 
     private Expr assignment() {
-        Expr expr = equality();
+        Expr expr = or();
 
         if (match(TokenType.EQUAL)) {
             Token equals = previous();
@@ -147,9 +259,31 @@ public class Parser {
                 return new Expr.Assign(name, value);
             }
 
-            error(equals, "Invalid assignment target.");
+            throw error(equals, "Invalid assignment target.");
         }
 
+        return expr;
+    }
+
+    private Expr or(){
+        Expr expr = and();
+
+        while(match(TokenType.OR)){
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr and(){
+        Expr expr = equality();
+
+        while(match(TokenType.AND)){
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Logical(expr, operator, right);
+        }
         return expr;
     }
 
@@ -229,7 +363,7 @@ public class Parser {
         throw error(peek(), "Expected expression.");
     }
     private boolean isAtEnd(){
-        return peek().type() == TokenType.EOF || peek().type() == TokenType.END;
+        return peek().type() == TokenType.EOF;
     }
 
     private Token advance(){
@@ -255,13 +389,14 @@ public class Parser {
         return false;
     }
 
-    private void keywordsMatch(String message, TokenType ... type){
+    private void consumeKeywords(String message, TokenType ... type){
         for(TokenType t: type){
-            if(!check(t) && !isAtEnd()){
+            if(!check(t)){
                 throw error(peek(), message);
             }
             advance();
         }
+        consumeNewlines("Expected newline after keywords.");
     }
 
     private boolean check(TokenType type){
@@ -275,15 +410,16 @@ public class Parser {
         throw error(peek(), message);
     }
 
+    private void consumeNewlines(String message) {
+        if(!check(TokenType.NEWLINE)) throw error(peek(), message);
+        while(check(TokenType.NEWLINE)) {
+            advance();
+        }
+    }
+
     private ParseError error(Token token, String message){
         errorManager.syntaxError(token, message);
         return new ParseError();
-    }
-
-    private void consumeNewlines() {
-        while (check(TokenType.NEWLINE) && !isAtEnd()) {
-            advance();
-        }
     }
 
     private void synchronize(){

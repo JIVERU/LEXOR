@@ -4,6 +4,7 @@ package Lexor.interpreter;
 import Lexor.err.ErrorManager;
 import Lexor.err.RuntimeError;
 import Lexor.lexer.Token;
+import Lexor.lexer.TokenType;
 import Lexor.parser.ast.Expr;
 import Lexor.parser.ast.Stmt;
 
@@ -11,19 +12,19 @@ import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private final ErrorManager errorManager;
-    private final Environment environment;
+    private Environment environment;
 
-    public Interpreter(ErrorManager errorManager){
+    public Interpreter(ErrorManager errorManager) {
         this.environment = new Environment(errorManager);
         this.errorManager = errorManager;
     }
 
-    public void interpret(List<Stmt> statements){
-        try{
-            for(Stmt statement: statements){
+    public void interpret(List<Stmt> statements) {
+        try {
+            for (Stmt statement : statements) {
                 execute(statement);
             }
-        } catch (RuntimeError e){
+        } catch (RuntimeError e) {
             errorManager.runtimeError(e);
         }
     }
@@ -32,10 +33,23 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         statement.accept(this);
     }
 
+    private void executeBlock(List<Stmt> statements, Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
+    }
+
     private String stringify(Object object) {
         if (object == null) return "NULL";
         if (object instanceof Boolean) return (boolean) object ? "TRUE" : "FALSE";
         if (object instanceof Character) return object.toString();
+        if (object instanceof Variable) return ((Variable) object).value().toString();
 
         if (object instanceof Double) {
             String text = object.toString();
@@ -48,14 +62,15 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return object.toString();
     }
 
-    private Object evaluate(Expr expr){
+    private Object evaluate(Expr expr) {
         return expr.accept(this);
     }
 
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+        if(expr.name.type() == TokenType.IDENTIFIER) environment.assign(expr.name, value);
+        else throw new RuntimeError(expr.name, "Invalid assignment target.");
         return value;
     }
 
@@ -125,18 +140,18 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private double toDouble(Object object) {
-        if(object instanceof Number) return ((Number) object).doubleValue();
+        if (object instanceof Number) return ((Number) object).doubleValue();
         throw new RuntimeException("Not a number.");
     }
 
     private void checkNumberOperand(Token operator, Object left, Object right) {
-        if(!(left instanceof Number) || !(right instanceof Number))
-            throw new RuntimeError(operator,"Operands must be numbers.");
+        if (!(left instanceof Number) || !(right instanceof Number))
+            throw new RuntimeError(operator, "Operands must be numbers.");
     }
 
-    private boolean isEqual(Object left, Object right){
+    private boolean isEqual(Object left, Object right) {
         if (left == null && right == null) return true;
-        if(left == null) return false;
+        if (left == null) return false;
         return left.equals(right);
     }
 
@@ -151,13 +166,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        Object left = evaluate(expr.left);
+
+        if(expr.operator.type() == TokenType.OR) if(isTruthy(left)) return true;
+        else {if(!isTruthy(left)) return false;}
+        return  evaluate(expr.right);
+    }
+
+    @Override
     public Object visitUnaryExpr(Expr.Unary expr) {
         Object operand = evaluate(expr.right);
         return switch (expr.operator.type()) {
             case NOT -> !isTruthy(operand);
             case MINUS -> {
                 checkNumberOperand(expr.operator, operand);
-                if(operand instanceof Double) yield -(Double) operand;
+                if (operand instanceof Double) yield -(Double) operand;
                 yield -(int) operand;
             }
             case PLUS -> operand;
@@ -171,33 +195,34 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private void checkNumberOperand(Token operator, Object operand) {
-        if(operand instanceof Number) return;
-        throw new RuntimeError(operator,"Operand must be a number");
+        if (operand instanceof Number) return;
+        throw new RuntimeError(operator, "Operand must be a number");
     }
 
-    private boolean isTruthy(Object object){
-        if(object == null) return false;
-        if(object instanceof Boolean) return (Boolean)object;
-        return true;
-    }
-
-    @Override
-    public Void visitIfBlockStmt(Stmt.IfBlock stmt) {
-        return null;
+    private boolean isTruthy(Object object) {
+        if (object == null) return false;
+        if (object instanceof Boolean) return (Boolean) object;
+        throw new RuntimeError(null, "Not a boolean.");
     }
 
     @Override
-    public Void visitRepeatBlockStmt(Stmt.RepeatBlock stmt) {
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
         return null;
     }
 
     @Override
     public Void visitIfStmt(Stmt.If stmt) {
+        if(isTruthy(evaluate(stmt.condition))) execute(stmt.thenBranch);
+        else if(stmt.elseBranch != null) execute(stmt.elseBranch);
         return null;
     }
 
     @Override
     public Void visitWhenStmt(Stmt.When stmt) {
+        while(isTruthy(evaluate(stmt.condition))){
+            execute(stmt.body);
+        }
         return null;
     }
 
@@ -209,22 +234,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
-        System.out.println(stringify(evaluate(stmt.expression)));
+        System.out.print(stringify(evaluate(stmt.expression)));
         return null;
     }
 
     @Override
     public Void visitDeclareStmt(Stmt.Declare stmt) {
-        Token name;
         Object value = null;
         Expr initializer;
-        for(Token token: stmt.names){
+        TokenType type = stmt.type;
+        for (Token token : stmt.names) {
             initializer = stmt.initializer.get(stmt.names.indexOf(token));
-            if(initializer != null) value = evaluate(initializer);
-            environment.define(token.lexeme(), value);
+            if (initializer != null) {
+                value = evaluate(initializer);
+            }
+            environment.define(token, value, type);
         }
         return null;
     }
-
-
 }

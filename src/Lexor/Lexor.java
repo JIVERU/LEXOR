@@ -4,7 +4,6 @@ import Lexor.err.ErrorManager;
 import Lexor.interpreter.Interpreter;
 import Lexor.lexer.Lexer;
 import Lexor.lexer.Token;
-import Lexor.parser.AstPrinter;
 import Lexor.parser.Parser;
 import Lexor.parser.ast.Stmt;
 
@@ -47,20 +46,15 @@ public class Lexor {
 
         String content = Files.readString(filePath);
         run(content);
-        if(errorManager.hadErrors()) System.exit(65);
+        if(errorManager.hadError()) System.exit(65);
         if(errorManager.hadRuntimeError()) System.exit(70);
     }
     static void run(String input) {
         Lexer lexer = new Lexer(input, errorManager);
         List<Token> tokens = lexer.scanTokens();
-//        lexer.scanTokens().forEach(System.out::println);
         Parser parser = new Parser(tokens, errorManager);
         List<Stmt> statements = parser.parse();
-        if(errorManager.hadErrors()) return;
-//        for(Stmt statement : statements){
-//            System.out.println(statement.toString());
-//        }
-//        System.out.println(new AstPrinter().print(statements));
+        if(errorManager.hadError()) return;
         interpreter.interpret(statements);
     }
 }

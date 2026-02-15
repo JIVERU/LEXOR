@@ -37,13 +37,19 @@ public class ErrorManager {
     }
 
     public void runtimeError(RuntimeError error) {
-        report(error.getToken().line(), error.getToken().column(), " at '" + error.getToken().lexeme() + "'", error.getMessage(), ErrorType.RUNTIME);
-        errors.add(new Error(
-                error.getMessage(),
-                error.getToken().line(),
-                error.getToken().column(),
-                ErrorType.RUNTIME
-        ));
+        if (error.getToken() == null) {
+            report(0, 0, "", error.getMessage(), ErrorType.RUNTIME);
+            errors.add(new Error(error.getMessage(), 0, 0, ErrorType.RUNTIME));
+        }else{
+            report(error.getToken().line(), error.getToken().column(), " at '" + error.getToken().lexeme() + "'", error.getMessage(), ErrorType.RUNTIME);
+            errors.add(new Error(
+                    error.getMessage(),
+                    error.getToken().line(),
+                    error.getToken().column(),
+                    ErrorType.RUNTIME
+            ));
+        }
+
 
         hadRuntimeError = true;
     }
@@ -65,7 +71,7 @@ public class ErrorManager {
         }
     }
 
-    public boolean hadErrors() {
+    public boolean hadError() {
         return hadError;
     }
 
