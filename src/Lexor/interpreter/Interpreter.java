@@ -3,12 +3,14 @@ package Lexor.interpreter;
 
 import Lexor.err.ErrorManager;
 import Lexor.err.RuntimeError;
+import Lexor.lexer.Lexer;
 import Lexor.lexer.Token;
 import Lexor.lexer.TokenType;
 import Lexor.parser.ast.Expr;
 import Lexor.parser.ast.Stmt;
 
 import java.util.List;
+import java.util.Scanner;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private final ErrorManager errorManager;
@@ -235,6 +237,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
         System.out.print(stringify(evaluate(stmt.expression)));
+        return null;
+    }
+
+    @Override
+    public Void visitScanStmt(Stmt.Scan stmt) {
+        Scanner scanner = new Scanner(System.in);
+        String line = scanner.nextLine();
+        Lexer lexer = new Lexer(line, errorManager);
+
+        List<Token> valueTokens = lexer.scanTokens().stream()
+                .filter(t -> t.type() != TokenType.EOF && t.type() != TokenType.COMMA && t.type() != TokenType.NEWLINE)
+                .toList();
+
+        if (valueTokens.size() != stmt.names.size()) {
+            throw new RuntimeError(stmt.names.getFirst(),
+                    "Expected " + stmt.names.size() + " inputs, but got " + valueTokens.size() + ".");
+        }
+
+        Token value;
+        for (Token token : stmt.names) {
+            value = valueTokens.get(stmt.names.indexOf(token));
+            environment.assign(token, value.literal());
+        }
         return null;
     }
 

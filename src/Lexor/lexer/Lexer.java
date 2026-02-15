@@ -7,7 +7,7 @@ import java.util.*;
 
 public class Lexer {
     private final ErrorManager errorManager;
-    private final String source;
+    private String source;
     private final List<Token> tokens = new ArrayList<>();
     private static final Map<String, TokenType> keywords;
     private int start = 0;
@@ -153,9 +153,9 @@ public class Lexer {
 
         advance();
         if(value.toString().equals("TRUE")){
-            addToken(TokenType.TRUE);
+            addToken(TokenType.TRUE, true);
         }else if(value.toString().equals("FALSE")){
-            addToken(TokenType.FALSE);
+            addToken(TokenType.FALSE, false);
         }else{
             addToken(TokenType.STRING_LITERAL, value.toString());
         }

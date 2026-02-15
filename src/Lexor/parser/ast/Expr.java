@@ -1,6 +1,4 @@
 package Lexor.parser.ast;
-import Lexor.lexer.TokenType;
-import java.util.List;
 import Lexor.lexer.Token;
 
 public abstract class Expr {

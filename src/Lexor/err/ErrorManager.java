@@ -30,8 +30,9 @@ public class ErrorManager {
         } else {
             if( token.type() == TokenType.NEWLINE){
                 report(token.line(), token.column(), " at the end of statement", message, ErrorType.SYNTAX);
+            }else{
+                report(token.line(), token.column(), " at '" + token.lexeme() + "'", message, ErrorType.SYNTAX);
             }
-            report(token.line(), token.column(), " at '" + token.lexeme() + "'", message, ErrorType.SYNTAX);
         }
         hadError = true;
     }
@@ -41,7 +42,12 @@ public class ErrorManager {
             report(0, 0, "", error.getMessage(), ErrorType.RUNTIME);
             errors.add(new Error(error.getMessage(), 0, 0, ErrorType.RUNTIME));
         }else{
-            report(error.getToken().line(), error.getToken().column(), " at '" + error.getToken().lexeme() + "'", error.getMessage(), ErrorType.RUNTIME);
+            String lexeme;
+            if(error.getToken().type() == TokenType.NEWLINE){
+                report(error.getToken().line(), error.getToken().column(), " at end of line", error.getMessage(), ErrorType.RUNTIME);
+            }else {
+                report(error.getToken().line(), error.getToken().column(), " at '" + error.getToken().lexeme() + "'", error.getMessage(), ErrorType.RUNTIME);
+            }
             errors.add(new Error(
                     error.getMessage(),
                     error.getToken().line(),

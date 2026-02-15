@@ -1,5 +1,7 @@
 package Lexor.parser.ast;
 import Lexor.lexer.TokenType;
+
+import java.io.IOException;
 import java.util.List;
 import Lexor.lexer.Token;
 
@@ -10,6 +12,7 @@ public abstract class Stmt {
         R visitBlockStmt(Block stmt);
         R visitExpressionStmt(Expression stmt);
         R visitPrintStmt(Print stmt);
+        R visitScanStmt(Scan stmt);
         R visitDeclareStmt(Declare stmt);
     }
     public static class If extends Stmt {
@@ -76,6 +79,18 @@ public abstract class Stmt {
         @Override
         public <R> R accept(Visitor<R> visitor) {
         return visitor.visitPrintStmt(this);
+        }
+    }
+    public static class Scan extends Stmt {
+        public final List<Token> names;
+
+        public Scan(List<Token> names) {
+            this.names = names;
+        }
+
+        @Override
+        public <R> R accept(Visitor<R> visitor) {
+        return visitor.visitScanStmt(this);
         }
     }
     public static class Declare extends Stmt {

@@ -69,7 +69,7 @@ public class Parser {
                 TokenType.END, TokenType.SCRIPT
         );
         if(tokens.get(current).type() != TokenType.EOF){
-            throw error(peek(), "Expected end of file.");
+            throw error(peek(), "No statements allowed after 'END SCRIPT'.");
         }
     }
 
@@ -110,7 +110,22 @@ public class Parser {
             consume(TokenType.COLON, "Expected ':' after 'print'.");
             return printStatement();
         }
+        if(match(TokenType.SCAN)){
+            consume(TokenType.COLON, "Expected ':' after 'scan'.");
+            return scanStatement();
+        }
         return expressionStatement();
+    }
+
+    private Stmt scanStatement() {
+        List<Token> names = new ArrayList<>();
+        consume(TokenType.IDENTIFIER, "Expected at least one variable");
+        names.add(previous());
+        while(match(TokenType.COMMA)){
+            names.add(consume(TokenType.IDENTIFIER, "Expected variable name."));
+        }
+        consumeNewlines( "Expected newline after value.");
+        return new Stmt.Scan(names);
     }
 
     private Stmt ifStatement(){
@@ -411,6 +426,7 @@ public class Parser {
     }
 
     private void consumeNewlines(String message) {
+        if(isAtEnd()) return;
         if(!check(TokenType.NEWLINE)) throw error(peek(), message);
         while(check(TokenType.NEWLINE)) {
             advance();

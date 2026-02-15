@@ -752,4 +752,158 @@ class InterpreterTest {
         runScript(code);
         assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "Should reject non-boolean conditions in IF statements.");
     }
+
+    // ==========================================
+    // 7. SCAN STATEMENT EXHAUSTIVE TESTS
+    // ==========================================
+
+    @Test
+    public void testScanSingleVariable() {
+        // Tests basic SCAN functionality with a single variable[cite: 79, 80].
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT age
+                SCAN: age
+                PRINT: age + 5
+                END SCRIPT
+                """;
+
+        // Mock user typing "20" and hitting Enter
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("20\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError(), "Should not have errors on valid single SCAN.");
+            assertEquals("25", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn); // Always restore System.in!
+        }
+    }
+
+    @Test
+    public void testScanMultipleVariablesMixedTypes() {
+        // Tests scanning multiple variables separated by commas.
+        // Ensures the interpreter correctly routes the right value to the right type (INT, FLOAT, BOOL).
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT a
+                DECLARE FLOAT b
+                DECLARE BOOL c
+                SCAN: a, b, c
+                PRINT: a & $ & b & $ & c
+                END SCRIPT
+                """;
+
+        // Mock user typing "10, 3.14, "TRUE"" and hitting Enter
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("10, 3.14, \"TRUE\"\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError(), "Should handle multiple valid inputs.");
+            assertEquals("10\n3.14\nTRUE", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testScanCountMismatch_TooFewInputs() {
+        // Tests error handling when the user provides fewer inputs than requested.
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x, y
+                SCAN: x, y
+                END SCRIPT
+                """;
+
+        // Mock user typing only ONE value instead of TWO
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("10\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+
+        try {
+            runScript(code);
+            assertTrue(errorManager.hadRuntimeError(), "Interpreter should throw a runtime error when input count is too low.");
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testScanCountMismatch_TooManyInputs() {
+        // Tests error handling when the user provides more inputs than requested.
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x
+                SCAN: x
+                END SCRIPT
+                """;
+
+        // Mock user typing TWO values instead of ONE
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("10, 20\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+
+        try {
+            runScript(code);
+            assertTrue(errorManager.hadRuntimeError(), "Interpreter should throw a runtime error when input count is too high.");
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testScanTypeMismatch() {
+        // Tests strict typing during input. If a variable is an INT, it should reject a BOOL input.
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT number
+                SCAN: number
+                END SCRIPT
+                """;
+
+        // Mock user typing a boolean literal instead of a number
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("\"TRUE\"\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+
+        try {
+            runScript(code);
+            assertTrue(errorManager.hadRuntimeError(), "Interpreter should throw a type mismatch error when scanning bad input.");
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testscan3() {
+        // SCAN allows inputting a value to a data type, so the variable must exist.
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                SCAN: ghostVar
+                END SCRIPT
+                """;
+
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("10\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+
+        try {
+            runScript(code);
+            // It might be caught by the parser/resolver as a syntax error, or by the interpreter as a runtime error.
+            assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "Should fail when scanning into an undeclared variable.");
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
 }
