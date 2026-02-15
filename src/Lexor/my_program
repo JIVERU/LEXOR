@@ -1,0 +1,19 @@
+SCRIPT AREA
+START SCRIPT
+DECLARE INT count
+
+%% A standard FOR loop
+FOR (count = 0, count < 5, count = count + 1)
+START FOR
+    PRINT: count & $
+END FOR
+
+%% A REPEAT WHEN loop
+count = 3
+REPEAT WHEN (count > 0)
+START REPEAT
+    PRINT: count & $
+    count = count - 1
+END REPEAT
+
+END SCRIPT

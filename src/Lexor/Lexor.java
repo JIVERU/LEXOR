@@ -19,8 +19,9 @@ public class Lexor {
     static void main(String[] args) throws IOException{
         if (args.length == 1){
             runFile(args[0]);
+        }else{
+            System.out.println("Usage: lexor <file>");
         }
-        System.out.println("Usage: lexor <file>");
     }
 
 //    static void runPrompt() throws IOException{

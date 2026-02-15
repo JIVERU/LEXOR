@@ -33,7 +33,7 @@ class InterpreterTest {
         // Hijack System.out to capture PRINT statements
         System.setOut(new PrintStream(outContent));
         System.setErr(new PrintStream(errContent));
-        // Reset the error manager before every single test
+        // Reset the error manager before every single my_program
         errorManager = new ErrorManager();
     }
 
