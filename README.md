@@ -5,6 +5,35 @@ Introduction
 LEXOR is a strongly – typed programming language developed to teach Senior High School students the basics of
 programming. LEXOR is a pure interpreter.
 
+## Project Structure
+```
+LEXOR-Interpreter/
+├── src/
+│   └── Lexor/
+│       ├── err/                   # Error Handling
+│       │   ├── ErrorManager.java  # Tracks and reports syntax/runtime errors
+│       │   ├── ParseError.java    # Internal parsing exception
+│       │   └── RuntimeError.java  # Exception for execution-time failures
+│       ├── interpreter/           # Execution Engine
+│       │   ├── Interpreter.java   # AST-walking visitor implementation
+│       │   ├── Environment.java   # Manages variable memory and scoping
+│       │   └── Variable.java      # Record for Type-checked variable storage
+│       ├── lexer/                 # Lexical Analysis
+│       │   ├── Lexer.java         # Converts source text into Tokens
+│       │   ├── Token.java         # Token data structure
+│       │   └── TokenType.java     # Enum for all LEXOR reserved words/symbols
+│       ├── parser/                # Syntax Analysis
+│       │   ├── Parser.java        # Recursive Descent Parser
+│       │   └── ast/               # Abstract Syntax Tree (AST) Node definitions
+│       │       ├── Expr.java      # Expression nodes (Binary, Unary, Literal)
+│       │       └── Stmt.java      # Statement nodes (If, When, Print, Declare)
+│       ├──Lexor.java              # Entry point
+|       ├── my_program             # Test Script
+|       ├── Tests/                 # Quality Assurance
+|         └── InterpreterTest.java # JUnit 5 tests
+├── LICENSE                        # MIT License
+└── README.md                      # Project documentation
+```
 ## Language Grammar
 Program Structure:
 - all code starts with SCRIPT AREA
@@ -29,7 +58,7 @@ cd /src/
 ```
 java Lexor.java .\my_program
 ```
-### Variables and Data Types
+## Variables and Data Types
 All variable declarations must follow right after the `START SCRIPT` keyword; they cannot be placed anywhere else. Executable codes are placed after variable declarations. Variable names are case-sensitive.
 ```text
 SCRIPT AREA
@@ -43,7 +72,7 @@ DECLARE BOOL flag = "TRUE"
 x = 20
 END SCRIPT
 ```
-### Printing and Formatting
+## Printing and Formatting
 The `PRINT:` statement writes formatted output to the screen.
  - Use & to concatenate values.
  - Use $ to print a newline or carriage return.
@@ -56,7 +85,7 @@ DECLARE INT score = 100
 PRINT: "Your score is: " & score & $ & "Good job!"
 END SCRIPT
 ```
-### User Input
+## User Input
 The `SCAN:` statement allows users to input values directly into declared variables from the console, separated by commas .
 ```Plaintext
 SCRIPT AREA
@@ -66,7 +95,7 @@ SCAN: a, b
 PRINT: "Sum: " & (a + b)
 END SCRIPT
 ```
-### Control Flow 
+## Control Flow 
 LEXOR utilizes explicit start and end block keywords for conditional logic .
 ```Plaintext
 SCRIPT AREA
@@ -88,7 +117,7 @@ END IF
 
 END SCRIPT
 ```
-### Loops
+## Loops
 LEXOR supports `FOR` loops and `REPEAT WHEN` loops .
 ```Plaintext
 SCRIPT AREA
@@ -111,3 +140,6 @@ END REPEAT
 
 END SCRIPT
 ```
+
+## License
+MIT License at `LICENSE` 
