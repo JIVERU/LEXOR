@@ -18,24 +18,19 @@ public class Lexor {
     private static final Interpreter interpreter = new Interpreter(errorManager);
     static void main(String[] args) throws IOException{
         if (args.length == 1){
+            String filePath = args[0];
+
+            if (!filePath.toLowerCase().endsWith(".lxr")) {
+                System.err.println("Error: Invalid file extension.");
+                System.err.println("LEXOR can only execute files ending with '.lxr'");
+                System.exit(65);
+            }
             runFile(args[0]);
         }else{
             System.out.println("Usage: lexor <file>");
+            System.exit(64);
         }
     }
-
-//    static void runPrompt() throws IOException{
-//        InputStreamReader input = new InputStreamReader(System.in);
-//        BufferedReader reader = new BufferedReader(input);
-//
-//        for (;;) {
-//            System.out.print("> ");
-//            String line = reader.readLine();
-//            if (line == null) break;
-//            run(line);
-//            errorManager.reset();
-//        }
-//    }
 
     static void runFile(String filepath) throws IOException {
         Path filePath = Paths.get(filepath);
