@@ -171,9 +171,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Object visitLogicalExpr(Expr.Logical expr) {
         Object left = evaluate(expr.left);
 
-        if(expr.operator.type() == TokenType.OR) if(isTruthy(left)) return true;
-        else {if(!isTruthy(left)) return false;}
-        return  evaluate(expr.right);
+        if(expr.operator.type() == TokenType.OR) {
+            if(isTruthy(left)) return true;
+        } else {
+            if(!isTruthy(left)) return false;
+        }
+        return evaluate(expr.right);
     }
 
     @Override

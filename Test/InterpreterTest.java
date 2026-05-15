@@ -1,5 +1,3 @@
-package Tests;
-
 import Lexor.err.ErrorManager;
 import Lexor.interpreter.Interpreter;
 import Lexor.lexer.Lexer;
@@ -905,5 +903,925 @@ class InterpreterTest {
         } finally {
             System.setIn(originalIn);
         }
+    }
+
+    // ==========================================
+    // 8. PROGRAM STRUCTURE EDGE CASES
+    // ==========================================
+
+    @Test
+    public void testEdgeCase_MissingStartScript() {
+        String code = """
+                SCRIPT AREA
+                DECLARE INT x = 5
+                PRINT: x
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadError(), "Should reject missing START SCRIPT.");
+    }
+
+    @Test
+    public void testEmptyProgram() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("", outContent.toString());
+    }
+
+    @Test
+    public void testCommentOnlyProgram() {
+        String code = """
+                %% just a comment
+                SCRIPT AREA
+                START SCRIPT
+                %% another comment
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("", outContent.toString());
+    }
+
+    // ==========================================
+    // 9. VARIABLE DECLARATION EXPANDED
+    // ==========================================
+
+    @Test
+    public void testDeclareMultipleVarsPartialInit() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x, y, z = 5
+                PRINT: z
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("5", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testDeclareAllDataTypes() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT a = 42
+                DECLARE FLOAT b = 3.14
+                DECLARE CHAR c = 'Z'
+                DECLARE BOOL d = "TRUE"
+                DECLARE STRING e = "hello"
+                PRINT: a & $ & b & $ & c & $ & d & $ & e
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("42\n3.14\nZ\nTRUE\nhello", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testDeclareStringVariable() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE STRING s = "Hello World"
+                PRINT: s
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("Hello World", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testVariableWithUnderscoreStart() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT _myVar = 99
+                PRINT: _myVar
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("99", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testVariableWithDigitsAfterStart() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT abc123 = 7
+                PRINT: abc123
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("7", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testMultipleDeclarationStatements() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT a = 1
+                DECLARE INT b = 2
+                DECLARE INT c = 3
+                PRINT: a & b & c
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("123", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 10. DATA TYPE & TYPE MISMATCH ERRORS
+    // ==========================================
+
+    @Test
+    public void testTypeMismatch_BoolToInt() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x
+                x = "TRUE"
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "Cannot assign BOOL to INT.");
+    }
+
+    @Test
+    public void testTypeMismatch_IntToChar() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE CHAR c
+                c = 5
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "Cannot assign INT to CHAR.");
+    }
+
+    @Test
+    public void testTypeMismatch_FloatToInt() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x
+                x = 3.14
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "Cannot assign FLOAT to INT.");
+    }
+
+    @Test
+    public void testCharLiteralAssignment() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE CHAR letter = 'A'
+                PRINT: letter
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("A", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testBoolAssignmentFromExpression() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE BOOL b = (5 > 3)
+                PRINT: b
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("TRUE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 11. ARITHMETIC OPERATORS EXPANDED
+    // ==========================================
+
+    @Test
+    public void testAddition() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 3 + 7
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("10", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testSubtraction() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 20 - 8
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("12", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testMultiplication() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 6 * 7
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("42", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testIntegerDivision() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 7 / 2
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("3", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testFloatDivision() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 7.0 / 2.0
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("3.5", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testDivisionByZero() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 10 / 0
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadRuntimeError(), "Division by zero should be a runtime error.");
+    }
+
+    @Test
+    public void testArithmeticPrecedence() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 2 + 3 * 4
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("14", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testMixedIntFloatArithmetic() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 5 + 2.5
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("7.5", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testModuloOperator() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: 17 % 5
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("2", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 12. RELATIONAL OPERATORS EXPANDED
+    // ==========================================
+
+    @Test
+    public void testNotEqualOperator() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: (5 <> 3) & $ & (5 <> 5)
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("TRUE\nFALSE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testRelationalWithFloats() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: (3.14 > 2.71) & $ & (1.0 < 2.0)
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("TRUE\nTRUE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 13. LOGICAL OPERATORS EXPANDED
+    // ==========================================
+
+    @Test
+    public void testLogicalAndShortCircuit() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE BOOL r = ("FALSE" AND "TRUE")
+                PRINT: r
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("FALSE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testLogicalOrShortCircuit() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE BOOL r = ("TRUE" OR "FALSE")
+                PRINT: r
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("TRUE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testNotWithFalse() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: NOT "FALSE"
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("TRUE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 14. UNARY OPERATORS EXPANDED
+    // ==========================================
+
+    @Test
+    public void testUnaryOnFloat() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT f = 3.14
+                PRINT: -f
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("-3.14", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testUnaryOnExpression() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: -(5 + 3)
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("-8", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 15. PRINT & CONCATENATION EXPANDED
+    // ==========================================
+
+    @Test
+    public void testPrintMultipleStatements() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: "Hello"
+                PRINT: " "
+                PRINT: "World"
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("Hello World", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testPrintBooleanValue() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE BOOL b = "FALSE"
+                PRINT: b
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("FALSE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testConcatenationMixedTypes() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i = 1
+                DECLARE FLOAT f = 2.5
+                DECLARE CHAR c = 'X'
+                DECLARE BOOL b = "TRUE"
+                PRINT: i & f & c & b
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("12.5XTRUE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testPrintHashEscapeCode() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: [#] & "tag"
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("#tag", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 16. IF/ELSE EXPANDED
+    // ==========================================
+
+    @Test
+    public void testIfFalseConditionNoElse() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                IF (5 > 10)
+                START IF
+                PRINT: "NOPE"
+                END IF
+                PRINT: "DONE"
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("DONE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testNestedIfStatements() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x = 10
+                IF (x > 5)
+                START IF
+                    IF (x > 8)
+                    START IF
+                        PRINT: "DEEP"
+                    END IF
+                END IF
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("DEEP", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testElseIfAllFalse() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x = 1
+                IF (x == 10)
+                START IF
+                PRINT: "A"
+                END IF
+                ELSE IF (x == 20)
+                START IF
+                PRINT: "B"
+                END IF
+                ELSE
+                START IF
+                PRINT: "C"
+                END IF
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("C", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 17. FOR LOOP EXPANDED
+    // ==========================================
+
+    @Test
+    public void testForLoopCountdown() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i
+                FOR (i=3, i>0, i=i-1)
+                START FOR
+                PRINT: i
+                END FOR
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("321", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testNestedForLoops() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i, j
+                FOR (i=0, i<2, i=i+1)
+                START FOR
+                    FOR (j=0, j<2, j=j+1)
+                    START FOR
+                        PRINT: i & j
+                    END FOR
+                END FOR
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("00011011", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testForLoopWithBodyAssignment() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i, sum = 0
+                FOR (i=1, i<=5, i=i+1)
+                START FOR
+                    sum = sum + i
+                END FOR
+                PRINT: sum
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("15", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 18. REPEAT WHEN EXPANDED
+    // ==========================================
+
+    @Test
+    public void testRepeatWhenFalseInitially() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x = 0
+                REPEAT WHEN (x > 10)
+                START REPEAT
+                PRINT: "NOPE"
+                END REPEAT
+                PRINT: "DONE"
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("DONE", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testRepeatWhenComplexCondition() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x = 5
+                REPEAT WHEN (x > 0 AND x < 10)
+                START REPEAT
+                x = x - 1
+                END REPEAT
+                PRINT: x
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("0", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 19. ASSIGNMENT & SCOPING
+    // ==========================================
+
+    @Test
+    public void testChainedAssignment() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x, y
+                x = y = 4
+                PRINT: x & y
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("44", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testReassignment() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x = 1
+                x = 2
+                x = 3
+                PRINT: x
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("3", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testVariableScopeInLoop() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i, total = 0
+                FOR (i=0, i<3, i=i+1)
+                START FOR
+                    total = total + 1
+                END FOR
+                PRINT: total
+                END SCRIPT
+                """;
+        runScript(code);
+        assertEquals("3", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testUndefinedVariableUsage() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                PRINT: ghost
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "Should fail for undefined variable.");
+    }
+
+    // ==========================================
+    // 20. SCAN EXPANDED
+    // ==========================================
+
+    @Test
+    public void testScanCharInput() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE CHAR c
+                SCAN: c
+                PRINT: c
+                END SCRIPT
+                """;
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("'A'\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError());
+            assertEquals("A", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testScanFloatInput() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT f
+                SCAN: f
+                PRINT: f
+                END SCRIPT
+                """;
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("6.28\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError());
+            assertEquals("6.28", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    // ==========================================
+    // 21. INTEGRATION / COMPLEX PROGRAMS
+    // ==========================================
+
+    @Test
+    public void testFullProgramFromReadme() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT count
+                FOR (count = 0, count < 5, count = count + 1)
+                START FOR
+                    PRINT: count & $
+                END FOR
+                count = 3
+                REPEAT WHEN (count > 0)
+                START REPEAT
+                    PRINT: count & $
+                    count = count - 1
+                END REPEAT
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("0\n1\n2\n3\n4\n3\n2\n1\n", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testAccumulatorProgram() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i, sum = 0
+                FOR (i=1, i<=10, i=i+1)
+                START FOR
+                    sum = sum + i
+                END FOR
+                PRINT: sum
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("55", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testFizzBuzzStyleProgram() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i
+                FOR (i=1, i<=6, i=i+1)
+                START FOR
+                    IF (i % 3 == 0)
+                    START IF
+                        PRINT: "F"
+                    END IF
+                    ELSE IF (i % 2 == 0)
+                    START IF
+                        PRINT: "B"
+                    END IF
+                    ELSE
+                    START IF
+                        PRINT: i
+                    END IF
+                END FOR
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("1BFB5F", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testSyntaxError_InvalidExpressions() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x
+                x = 5 * / 2
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadError(), "Parser should catch invalid adjacent operators.");
+    }
+
+    // ==========================================
+    // 22. NESTED SCOPING TESTS
+    // ==========================================
+
+    @Test
+    public void testForLoopVariableScoping() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                FOR (DECLARE INT loopVar=1, loopVar<3, loopVar=loopVar+1)
+                START FOR
+                    PRINT: loopVar
+                END FOR
+                PRINT: loopVar
+                END SCRIPT
+                """;
+        runScript(code);
+        // loopVar is scoped to the FOR loop, so printing it afterwards should cause an error
+        assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "loopVar should be out of scope.");
+    }
+
+    @Test
+    public void testForLoopShadowing() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPTtestForLoopShadowing = 100
+                FOR (DECLARE INT i=1, i<=2, i=i+1)
+                START FOR
+                    PRINT: i
+                END FOR
+                PRINT: i
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError(), "Shadowing should be allowed in FOR loops.");
+        assertEquals("12100", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testOuterScopeModification() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x = 10
+                IF (x == 10)
+                START IF
+                    x = 20
+                END IF
+                PRINT: x
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        // The modification inside the IF block should persist outside because it targets the outer environment's variable
+        assertEquals("20", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testNestedBlockVisibility() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT globalVar = 5
+                FOR (DECLARE INT outer=1, outer<=1, outer=outer+1)
+                START FOR
+                    FOR (DECLARE INT inner=1, inner<=1, inner=inner+1)
+                    START FOR
+                        PRINT: globalVar & outer & inner
+                    END FOR
+                END FOR
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        // Inner loop can access outer loop's variables and global variables
+        assertEquals("511", outContent.toString().replace("\r\n", "\n"));
     }
 }

@@ -102,6 +102,28 @@ public class Parser {
         return new Stmt.Declare(names, initializers, type);
     }
 
+    private Stmt forVarDeclaration() {
+        if(!match(
+                TokenType.INT_TYPE,
+                TokenType.STRING_TYPE,
+                TokenType.BOOL_TYPE,
+                TokenType.FLOAT_TYPE,
+                TokenType.CHAR_TYPE
+        )) throw error(peek(), "Expected variable type.");
+        TokenType type = previous().type();
+        List<Token> names = new ArrayList<>();
+        List<Expr> initializers = new ArrayList<>();
+        
+        names.add(consume(TokenType.IDENTIFIER, "Expected variable name."));
+        Expr initializer = null;
+        if(match(TokenType.EQUAL)){
+            initializer = expression();
+        }
+        initializers.add(initializer);
+        
+        return new Stmt.Declare(names, initializers, type);
+    }
+
     private Stmt statement() {
         if(match(TokenType.IF)) return ifStatement();
         if(match(TokenType.REPEAT)) return whenStatement();
@@ -208,7 +230,7 @@ public class Parser {
             initializer = null;
         } else {
             if (match(TokenType.DECLARE)) {
-                initializer = varDeclaration();
+                initializer = forVarDeclaration();
             } else {
                 initializer = new Stmt.Expression(expression());
             }
