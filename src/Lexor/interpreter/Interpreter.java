@@ -1,6 +1,5 @@
 package Lexor.interpreter;
 
-
 import Lexor.err.ErrorManager;
 import Lexor.err.RuntimeError;
 import Lexor.lexer.Lexer;
@@ -48,10 +47,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private String stringify(Object object) {
-        if (object == null) return "NULL";
-        if (object instanceof Boolean) return (boolean) object ? "TRUE" : "FALSE";
-        if (object instanceof Character) return object.toString();
-        if (object instanceof Variable) return ((Variable) object).value().toString();
+        if (object == null)
+            return "NULL";
+        if (object instanceof Boolean)
+            return (boolean) object ? "TRUE" : "FALSE";
+        if (object instanceof Character)
+            return object.toString();
+        if (object instanceof Variable)
+            return ((Variable) object).value().toString();
 
         if (object instanceof Double) {
             String text = object.toString();
@@ -71,8 +74,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        if(expr.name.type() == TokenType.IDENTIFIER) environment.assign(expr.name, value);
-        else throw new RuntimeError(expr.name, "Invalid assignment target.");
+        if (expr.name.type() == TokenType.IDENTIFIER)
+            environment.assign(expr.name, value);
+        else
+            throw new RuntimeError(expr.name, "Invalid assignment target.");
         return value;
     }
 
@@ -101,7 +106,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 if (left instanceof Double || right instanceof Double) {
                     yield toDouble(left) / toDouble(right);
                 }
-                if ((int) right == 0) throw new RuntimeError(expr.operator, "Cannot divide by zero.");
+                if ((int) right == 0)
+                    throw new RuntimeError(expr.operator, "Cannot divide by zero.");
                 yield (int) left / (int) right;
             }
             case STAR -> {
@@ -142,7 +148,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private double toDouble(Object object) {
-        if (object instanceof Number) return ((Number) object).doubleValue();
+        if (object instanceof Number)
+            return ((Number) object).doubleValue();
         throw new RuntimeException("Not a number.");
     }
 
@@ -152,8 +159,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private boolean isEqual(Object left, Object right) {
-        if (left == null && right == null) return true;
-        if (left == null) return false;
+        if (left == null && right == null)
+            return true;
+        if (left == null)
+            return false;
         return left.equals(right);
     }
 
@@ -171,10 +180,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Object visitLogicalExpr(Expr.Logical expr) {
         Object left = evaluate(expr.left);
 
-        if(expr.operator.type() == TokenType.OR) {
-            if(isTruthy(left)) return true;
+        if (expr.operator.type() == TokenType.OR) {
+            if (isTruthy(left))
+                return true;
         } else {
-            if(!isTruthy(left)) return false;
+            if (!isTruthy(left))
+                return false;
         }
         return evaluate(expr.right);
     }
@@ -186,7 +197,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             case NOT -> !isTruthy(operand);
             case MINUS -> {
                 checkNumberOperand(expr.operator, operand);
-                if (operand instanceof Double) yield -(Double) operand;
+                if (operand instanceof Double)
+                    yield -(Double) operand;
                 yield -(int) operand;
             }
             case PLUS -> operand;
@@ -200,13 +212,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     private void checkNumberOperand(Token operator, Object operand) {
-        if (operand instanceof Number) return;
+        if (operand instanceof Number)
+            return;
         throw new RuntimeError(operator, "Operand must be a number");
     }
 
     private boolean isTruthy(Object object) {
-        if (object == null) return false;
-        if (object instanceof Boolean) return (Boolean) object;
+        if (object == null)
+            return false;
+        if (object instanceof Boolean)
+            return (Boolean) object;
         throw new RuntimeError(null, "Not a boolean.");
     }
 
@@ -218,14 +233,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitIfStmt(Stmt.If stmt) {
-        if(isTruthy(evaluate(stmt.condition))) execute(stmt.thenBranch);
-        else if(stmt.elseBranch != null) execute(stmt.elseBranch);
+        if (isTruthy(evaluate(stmt.condition)))
+            execute(stmt.thenBranch);
+        else if (stmt.elseBranch != null)
+            execute(stmt.elseBranch);
         return null;
     }
 
     @Override
     public Void visitWhenStmt(Stmt.When stmt) {
-        while(isTruthy(evaluate(stmt.condition))){
+        while (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.body);
         }
         return null;

@@ -1772,7 +1772,8 @@ class InterpreterTest {
     public void testForLoopShadowing() {
         String code = """
                 SCRIPT AREA
-                START SCRIPTtestForLoopShadowing = 100
+                START SCRIPT
+                DECLARE INT i = 100
                 FOR (DECLARE INT i=1, i<=2, i=i+1)
                 START FOR
                     PRINT: i
