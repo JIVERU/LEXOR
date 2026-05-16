@@ -56,12 +56,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         if (object instanceof Variable)
             return ((Variable) object).value().toString();
 
-        if (object instanceof Double) {
-            String text = object.toString();
-            if (text.endsWith(".0")) {
-                text = text.substring(0, text.length() - 2);
-            }
-            return text;
+        if (object instanceof Double d) {
+            java.text.DecimalFormat df = new java.text.DecimalFormat("#.##########");
+            return df.format(d);
         }
 
         return object.toString();

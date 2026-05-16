@@ -1825,4 +1825,81 @@ class InterpreterTest {
         // Inner loop can access outer loop's variables and global variables
         assertEquals("511", outContent.toString().replace("\r\n", "\n"));
     }
+    // ==========================================
+    // 23. FLOAT FORMATTING & EDGE CASES TESTS
+    // ==========================================
+
+    @Test
+    public void testFloatPrecisionAndFormatting() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT f = 5.6
+                f = f + 1.1
+                PRINT: f
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        // Verify that DecimalFormat successfully mitigated the 6.699999999999 issue
+        assertEquals("6.7", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testFloatHighValues() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT high = 999999.99
+                high = high * 10.0
+                PRINT: high
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("9999999.9", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testFloatAndIntMixedArithmetic() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT f = 2.5
+                DECLARE INT i = 4
+                PRINT: f * i
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("10", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testFloatDivisionByZero() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT f = 5.0
+                PRINT: f / 0
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertTrue(outContent.toString().contains("Infinity") || outContent.toString().contains("∞"), "Should print Infinity or ∞");
+    }
+
+    @Test
+    public void testFloatNegativeEdgeCases() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT f = -0.5
+                PRINT: f * -2.0
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("1", outContent.toString().replace("\r\n", "\n"));
+    }
 }

@@ -1,9 +1,5 @@
 SCRIPT AREA
                 START SCRIPT
-                DECLARE INT i = 100
-                FOR (DECLARE INT i=1, i<=2, i=i+1)
-                START FOR
-                    PRINT: i
-                END FOR
-                PRINT: i
+                DECLARE FLOAT f = 5.3
+                PRINT: f / 0
                 END SCRIPT
