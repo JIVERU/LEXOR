@@ -14,10 +14,12 @@ import java.util.Scanner;
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private final ErrorManager errorManager;
     private Environment environment;
+    private final Scanner inputScanner;
 
     public Interpreter(ErrorManager errorManager) {
         this.environment = new Environment();
         this.errorManager = errorManager;
+        this.inputScanner = new Scanner(System.in);
     }
 
     public void interpret(List<Stmt> statements) {
@@ -259,8 +261,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitScanStmt(Stmt.Scan stmt) {
-        Scanner scanner = new Scanner(System.in);
-        String line = scanner.nextLine();
+        if (!inputScanner.hasNextLine()) {
+            throw new RuntimeError(stmt.names.getFirst(), "No input provided for SCAN.");
+        }
+        String line = inputScanner.nextLine();
         Lexer lexer = new Lexer(line, errorManager);
 
         List<Token> valueTokens = lexer.scanTokens().stream()
@@ -272,10 +276,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     "Expected " + stmt.names.size() + " inputs, but got " + valueTokens.size() + ".");
         }
 
-        Token value;
-        for (Token token : stmt.names) {
-            value = valueTokens.get(stmt.names.indexOf(token));
-            environment.assign(token, value.literal());
+        for (int i = 0; i < stmt.names.size(); i++) {
+            Token var = stmt.names.get(i);
+            Token valTok = valueTokens.get(i);
+            environment.assign(var, valTok.literal());
         }
         return null;
     }

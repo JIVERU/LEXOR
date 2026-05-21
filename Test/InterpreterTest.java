@@ -16,6 +16,256 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class InterpreterTest {
 
+    // Added tests from issue_description
+    @Test
+    public void testIssue_MainSampleProgram() {
+        String code = """
+                SCRIPT AREA
+                    START SCRIPT
+                        DECLARE INT x, y, z=5
+                        DECLARE CHAR a_1='n'
+                        DECLARE BOOL t = "TRUE"
+                        DECLARE FLOAT f = 6.7
+                        f = f + 6
+                        x=y=4
+                        a_1='c'
+                        
+                        PRINT: x & t & z & $ & a_1
+                        PRINT: f
+                        
+                        IF (6 < 7)
+                            START IF
+                                PRINT: "IF BLOCK"
+                            END IF
+                        ELSE IF (4 >= 9)
+                            START IF
+                                PRINT: "ELSE IF BLOCK (4 >= 9)"
+                            END IF
+                        ELSE IF (4 <= 4)
+                            START IF
+                                PRINT: "ELSE IF BLOCK (4 <= 4)"
+                            END IF
+                        ELSE
+                            START IF
+                                PRINT: "ELSE BLOCK"
+                            END IF
+                    END SCRIPT
+                """;
+
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertFalse(errorManager.hadRuntimeError());
+        assertEquals("4TRUE5\nc12.7IF BLOCK", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testIssue_ArithmeticOperations() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                        DECLARE INT xyz, abc=100
+                        xyz= ((abc *5)/10 + 10) * -1
+                        PRINT: [[] & xyz & []]
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("[-60]", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testIssue_BooleanOperation() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                    DECLARE INT a=100, b=200, c=300
+                    DECLARE BOOL d="FALSE"
+                    d = (a < b AND c <>200)
+                    PRINT: d
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        assertEquals("TRUE", outContent.toString());
+    }
+
+    @Test
+    public void testIssue_ChainedAssignmentWithScan() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                       DECLARE INT x, y, z, a
+                       PRINT: "Enter a number: "
+                       SCAN: a
+                       x = y = z = a
+                       PRINT: "x = " & x & $
+                       PRINT: "y = " & y & $
+                       PRINT: "z = " & z & $
+                END SCRIPT
+                """;
+        java.io.InputStream originalIn = System.in;
+        try {
+            System.setIn(new java.io.ByteArrayInputStream("7\n".getBytes()));
+            runScript(code);
+        } finally {
+            System.setIn(originalIn);
+        }
+        assertFalse(errorManager.hadError());
+        assertEquals("Enter a number: x = 7\ny = 7\nz = 7\n", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testIssue_UserInputsTwoInts() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                        DECLARE INT x, y
+                        SCAN: x, y
+                        PRINT: "X = " & x & $ & "Y = " & y
+                END SCRIPT
+                """;
+        java.io.InputStream originalIn = System.in;
+        try {
+            System.setIn(new java.io.ByteArrayInputStream("3 4\n".getBytes()));
+            runScript(code);
+        } finally {
+            System.setIn(originalIn);
+        }
+        assertFalse(errorManager.hadError());
+        assertEquals("X = 3\nY = 4", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testIssue_RepeatWhen1toN() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                    DECLARE INT input, i = 1
+                    PRINT: "Enter a number: "
+                    SCAN: input
+                    
+                    REPEAT WHEN (i <= input)
+                        START REPEAT
+                            PRINT: "i = " & i & $
+                            i=i+1
+                        END REPEAT
+                END SCRIPT
+                """;
+        java.io.InputStream originalIn = System.in;
+        try {
+            System.setIn(new java.io.ByteArrayInputStream("3\n".getBytes()));
+            runScript(code);
+        } finally {
+            System.setIn(originalIn);
+        }
+        assertFalse(errorManager.hadError());
+        assertEquals("Enter a number: i = 1\ni = 2\ni = 3\n", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // INCREMENT 2 TEST CASES (selected, with clear expectations)
+    @Test
+    public void testInc2_InvalidTrailingCharInPrintExpression() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE BOOL t1, t2
+                SCAN: t1
+                SCAN: t2
+                PRINT:  (NOT t1) AND t2 s
+                END SCRIPT
+                """;
+        java.io.InputStream originalIn = System.in;
+        try {
+            System.setIn(new java.io.ByteArrayInputStream("TRUE\nFALSE\n".getBytes()));
+            runScript(code);
+        } finally {
+            System.setIn(originalIn);
+        }
+        assertTrue(errorManager.hadError() || errorManager.hadRuntimeError(), "Should flag syntax/runtime error due to stray 's'.");
+    }
+
+    @Test
+    public void testInc2_InvalidIdentifierStartingDigit() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE CHAR  0d
+                END SCRIPT
+                """;
+        runScript(code);
+        assertTrue(errorManager.hadError(), "Identifier starting with digit should be rejected.");
+    }
+
+    @Test
+    public void testInc2_IntArithmeticFromScan() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT a, b, c, d
+                SCAN: a, b, c
+                d = (a * b) / c
+                PRINT: d
+                END SCRIPT
+                """;
+        java.io.InputStream originalIn = System.in;
+        try {
+            System.setIn(new java.io.ByteArrayInputStream("6 4 5\n".getBytes()));
+            runScript(code);
+        } finally {
+            System.setIn(originalIn);
+        }
+        assertFalse(errorManager.hadError());
+        assertEquals("4", outContent.toString());
+    }
+
+    @Test
+    public void testInc2_FloatAdditionAndBoolPrint() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE BOOL b = "TRUE"
+                DECLARE FLOAT z, y
+                SCAN: z, y
+                z = z + y
+                PRINT: b & "  " & z
+                END SCRIPT
+                """;
+        java.io.InputStream originalIn = System.in;
+        try {
+            System.setIn(new java.io.ByteArrayInputStream("1.5 2.25\n".getBytes()));
+            runScript(code);
+        } finally {
+            System.setIn(originalIn);
+        }
+        assertFalse(errorManager.hadError());
+        assertEquals("TRUE  3.75", outContent.toString());
+    }
+
+    @Test
+    public void testInc2_MixedScanAndUpdates() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT n, o
+                DECLARE FLOAT f
+                SCAN: n, o
+                SCAN: f
+                n = n + 1
+                f = f + 1.1
+                PRINT: f & " " & n & " " & o
+                END SCRIPT
+                """;
+        java.io.InputStream originalIn = System.in;
+        try {
+            System.setIn(new java.io.ByteArrayInputStream("2 10\n3.4\n".getBytes()));
+            runScript(code);
+        } finally {
+            System.setIn(originalIn);
+        }
+        assertFalse(errorManager.hadError());
+        assertEquals("4.5 3 10", outContent.toString());
+    }
+
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
 
