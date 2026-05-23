@@ -1911,6 +1911,97 @@ class InterpreterTest {
         }
     }
 
+    @Test
+    public void testScanNegativeIntSingle() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT n
+                SCAN: n
+                PRINT: n
+                END SCRIPT
+                """;
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("-42\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError(), "Negative int input via SCAN should be accepted.");
+            assertEquals("-42", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testScanNegativeFloatSingle() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE FLOAT f
+                SCAN: f
+                PRINT: f
+                END SCRIPT
+                """;
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("-3.5\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError(), "Negative float input via SCAN should be accepted.");
+            assertEquals("-3.5", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testScanMultipleWithNegatives() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT a
+                DECLARE FLOAT b
+                SCAN: a, b
+                PRINT: a & $ & b
+                END SCRIPT
+                """;
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("-10, -2.25\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError(), "Multiple negative inputs via SCAN should be accepted.");
+            assertEquals("-10\n-2.25", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    public void testScanWithLeadingPlusAndNegativeMix() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT x
+                DECLARE FLOAT y
+                DECLARE INT z
+                SCAN: x, y, z
+                PRINT: x & $ & y & $ & z
+                END SCRIPT
+                """;
+        java.io.ByteArrayInputStream inContent = new java.io.ByteArrayInputStream("+5, -3.5, +7\n".getBytes());
+        java.io.InputStream originalIn = System.in;
+        System.setIn(inContent);
+        try {
+            runScript(code);
+            assertFalse(errorManager.hadError() || errorManager.hadRuntimeError(), "Signed numeric inputs via SCAN should be accepted.");
+            assertEquals("5\n-3.5\n7", outContent.toString().replace("\r\n", "\n"));
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
     // ==========================================
     // 21. INTEGRATION / COMPLEX PROGRAMS
     // ==========================================
@@ -2091,7 +2182,6 @@ class InterpreterTest {
                 """;
         runScript(code);
         assertFalse(errorManager.hadError());
-        // Verify that DecimalFormat successfully mitigated the 6.699999999999 issue
         assertEquals("6.7", outContent.toString().replace("\r\n", "\n"));
     }
 
@@ -2151,5 +2241,100 @@ class InterpreterTest {
         runScript(code);
         assertFalse(errorManager.hadError());
         assertEquals("1", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    // ==========================================
+    // 24. ADDITIONAL LOOP NESTING TESTS
+    // ==========================================
+
+    @Test
+    public void testRepeatInsideFor_NestedLoops() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i, j
+                FOR (i=1, i<=3, i=i+1)
+                START FOR
+                    j = 0
+                    REPEAT WHEN (j < i)
+                    START REPEAT
+                        PRINT: i
+                        j = j + 1
+                    END REPEAT
+                END FOR
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError(), "Nested REPEAT inside FOR should work.");
+        // For i=1 => 1; i=2 => 22; i=3 => 333
+        assertEquals("122333", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testForInsideRepeat_NestedLoops() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT cnt = 1, limit = 3, k
+                REPEAT WHEN (cnt <= limit)
+                START REPEAT
+                    FOR (k=0, k<cnt, k=k+1)
+                    START FOR
+                        PRINT: cnt
+                    END FOR
+                    cnt = cnt + 1
+                END REPEAT
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError(), "Nested FOR inside REPEAT should work.");
+        // cnt=1 => 1; cnt=2 => 22; cnt=3 => 333
+        assertEquals("122333", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testTripleNestedForLoops_SmallBounds() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i, j, k
+                FOR (i=0, i<2, i=i+1)
+                START FOR
+                    FOR (j=0, j<2, j=j+1)
+                    START FOR
+                        FOR (k=0, k<2, k=k+1)
+                        START FOR
+                            PRINT: i & j & k
+                        END FOR
+                    END FOR
+                END FOR
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError(), "Triple-nested FOR loops should execute correctly.");
+        assertEquals("000001010011100101110111", outContent.toString().replace("\r\n", "\n"));
+    }
+
+    @Test
+    public void testInnerRepeatZeroIterationsDependingOnOuter() {
+        String code = """
+                SCRIPT AREA
+                START SCRIPT
+                DECLARE INT i, j
+                FOR (i=0, i<3, i=i+1)
+                START FOR
+                    j = 0
+                    REPEAT WHEN (j < i)
+                    START REPEAT
+                        PRINT: j
+                        j = j + 1
+                    END REPEAT
+                END FOR
+                END SCRIPT
+                """;
+        runScript(code);
+        assertFalse(errorManager.hadError());
+        // i=0 => none; i=1 => 0; i=2 => 01
+        assertEquals("001", outContent.toString().replace("\r\n", "\n"));
     }
 }

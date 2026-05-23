@@ -1,5 +1,25 @@
 SCRIPT AREA
-                START SCRIPT
-                DECLARE FLOAT f = 5.3
-                PRINT: f / 0
-                END SCRIPT
+START SCRIPT
+DECLARE INT temp
+SCAN: temp
+IF (temp>35)
+START IF
+	PRINT: "Temperature Classification: Hot"
+END IF
+ELSE IF (temp>25)
+START IF
+	PRINT: "Temperature Classification: Warm"
+END IF
+ELSE IF (temp>10)
+START IF
+	PRINT: "Temperature Classification: Moderate"
+END IF
+ELSE IF (temp>-1)
+START IF
+	PRINT: "Temperature Classification: Cold"
+END IF
+ELSE
+START IF
+	PRINT: "Temperature Classification: Freezing"
+END IF
+END SCRIPT

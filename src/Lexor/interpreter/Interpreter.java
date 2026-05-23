@@ -9,6 +9,7 @@ import Lexor.parser.ast.Expr;
 import Lexor.parser.ast.Stmt;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
@@ -267,9 +268,41 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         String line = inputScanner.nextLine();
         Lexer lexer = new Lexer(line, errorManager);
 
-        List<Token> valueTokens = lexer.scanTokens().stream()
+        List<Token> rawTokens = lexer.scanTokens().stream()
                 .filter(t -> t.type() != TokenType.EOF && t.type() != TokenType.COMMA && t.type() != TokenType.NEWLINE)
                 .toList();
+
+        // Merge unary +/- with following numeric literal to support inputs like -2 or +3.5
+        List<Token> valueTokens = new ArrayList<>();
+        for (int i = 0; i < rawTokens.size(); i++) {
+            Token current = rawTokens.get(i);
+            if ((current.type() == TokenType.MINUS || current.type() == TokenType.PLUS)
+                    && i + 1 < rawTokens.size()) {
+                Token next = rawTokens.get(i + 1);
+                if (next.type() == TokenType.INTEGER_LITERAL || next.type() == TokenType.FLOAT_LITERAL) {
+                    boolean isNegative = current.type() == TokenType.MINUS;
+                    Object lit = next.literal();
+                    Object newLiteral;
+                    TokenType newType = next.type();
+                    if (lit instanceof Integer) {
+                        newLiteral = isNegative ? -((Integer) lit) : ((Integer) lit);
+                    } else if (lit instanceof Double) {
+                        newLiteral = isNegative ? -((Double) lit) : ((Double) lit);
+                    } else {
+                        // Fallback: if something unexpected, keep tokens separate
+                        valueTokens.add(current);
+                        continue;
+                    }
+                    String newLexeme = (isNegative ? "-" : "+") + next.lexeme();
+                    // Use the position from the sign token for simplicity
+                    Token merged = new Token(newType, newLexeme, newLiteral, current.line(), current.column());
+                    valueTokens.add(merged);
+                    i++; // Skip the next token as it's merged
+                    continue;
+                }
+            }
+            valueTokens.add(current);
+        }
 
         if (valueTokens.size() != stmt.names.size()) {
             throw new RuntimeError(stmt.names.getFirst(),
