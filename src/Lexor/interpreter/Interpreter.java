@@ -271,8 +271,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         List<Token> rawTokens = lexer.scanTokens().stream()
                 .filter(t -> t.type() != TokenType.EOF && t.type() != TokenType.COMMA && t.type() != TokenType.NEWLINE)
                 .toList();
-
-        // Merge unary +/- with following numeric literal to support inputs like -2 or +3.5
         List<Token> valueTokens = new ArrayList<>();
         for (int i = 0; i < rawTokens.size(); i++) {
             Token current = rawTokens.get(i);
@@ -289,15 +287,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     } else if (lit instanceof Double) {
                         newLiteral = isNegative ? -((Double) lit) : ((Double) lit);
                     } else {
-                        // Fallback: if something unexpected, keep tokens separate
                         valueTokens.add(current);
                         continue;
                     }
                     String newLexeme = (isNegative ? "-" : "+") + next.lexeme();
-                    // Use the position from the sign token for simplicity
                     Token merged = new Token(newType, newLexeme, newLiteral, current.line(), current.column());
                     valueTokens.add(merged);
-                    i++; // Skip the next token as it's merged
+                    i++;
                     continue;
                 }
             }
