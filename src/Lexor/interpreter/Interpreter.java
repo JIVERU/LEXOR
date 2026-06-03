@@ -60,7 +60,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             return ((Variable) object).value().toString();
 
         if (object instanceof Double d) {
-            java.text.DecimalFormat df = new java.text.DecimalFormat("#.##########");
+            java.text.DecimalFormat df = new java.text.DecimalFormat("0.0#########");
             return df.format(d);
         }
 
@@ -89,21 +89,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return switch (expr.operator.type()) {
             case MINUS -> {
                 checkNumberOperand(expr.operator, left, right);
-                if (left instanceof Double || right instanceof Double) {
+                if (!(left instanceof Integer && right instanceof Integer)) {
                     yield toDouble(left) - toDouble(right);
                 }
                 yield (int) left - (int) right;
             }
             case PLUS -> {
                 checkNumberOperand(expr.operator, left, right);
-                if (left instanceof Double || right instanceof Double) {
+                if (!(left instanceof Integer && right instanceof Integer)) {
                     yield toDouble(left) + toDouble(right);
                 }
                 yield (int) left + (int) right;
             }
             case SLASH -> {
                 checkNumberOperand(expr.operator, left, right);
-                if (left instanceof Double || right instanceof Double) {
+                if (!(left instanceof Integer && right instanceof Integer)) {
                     yield toDouble(left) / toDouble(right);
                 }
                 if ((int) right == 0)
@@ -112,7 +112,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             }
             case STAR -> {
                 checkNumberOperand(expr.operator, left, right);
-                if (left instanceof Double || right instanceof Double) {
+                if (!(left instanceof Integer && right instanceof Integer)) {
                     yield toDouble(left) * toDouble(right);
                 }
                 yield (int) left * (int) right;
@@ -137,7 +137,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             case NOT_EQUAL -> !isEqual(left, right);
             case MOD -> {
                 checkNumberOperand(expr.operator, left, right);
-                if (left instanceof Double || right instanceof Double) {
+                if (!(left instanceof Integer && right instanceof Integer)) {
                     yield toDouble(left) % toDouble(right);
                 }
                 yield (int) left % (int) right;
@@ -197,8 +197,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             case NOT -> !isTruthy(operand);
             case MINUS -> {
                 checkNumberOperand(expr.operator, operand);
-                if (operand instanceof Double)
-                    yield -(Double) operand;
+                if (!(operand instanceof Integer))
+                    yield -toDouble(operand);
                 yield -(int) operand;
             }
             case PLUS -> operand;

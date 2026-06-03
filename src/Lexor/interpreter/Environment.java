@@ -21,7 +21,10 @@ public class Environment {
     }
 
     void define(Token name, Object value, TokenType type){
-        if(value != null) verifyTypeMatch(name, type, value);
+        if (value != null) {
+            value = coerceToExpectedType(type, value);
+            verifyTypeMatch(name, type, value);
+        }
         values.put(name.lexeme(), new Variable(type, value));
     }
 
@@ -41,6 +44,7 @@ public class Environment {
         if(values.containsKey(name.lexeme())) {
             Variable var = values.get(name.lexeme());
             if (value != null) {
+                value = coerceToExpectedType(var.type(), value);
                 verifyTypeMatch(name, var.type(), value);
             }
             values.put(name.lexeme(), new Variable(var.type(), value));
@@ -51,6 +55,21 @@ public class Environment {
             return;
         }
         throw new RuntimeError(name,"Undefined variable '" + name.lexeme() + "'");
+    }
+
+    private Object coerceToExpectedType(TokenType expected, Object value) {
+        if (expected == TokenType.FLOAT_TYPE) {
+            if (value instanceof Integer) {
+                return ((Integer) value).doubleValue();
+            }
+            if (value instanceof Long) {
+                return ((Long) value).doubleValue();
+            }
+            if (value instanceof Float) {
+                return ((Float) value).doubleValue();
+            }
+        }
+        return value;
     }
 
     private void verifyTypeMatch(Token name, TokenType expected, Object value) {

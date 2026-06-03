@@ -2212,7 +2212,7 @@ class InterpreterTest {
                 """;
         runScript(code);
         assertFalse(errorManager.hadError());
-        assertEquals("10", outContent.toString().replace("\r\n", "\n"));
+        assertEquals("10.0", outContent.toString().replace("\r\n", "\n"));
     }
 
     @Test
@@ -2240,7 +2240,7 @@ class InterpreterTest {
                 """;
         runScript(code);
         assertFalse(errorManager.hadError());
-        assertEquals("1", outContent.toString().replace("\r\n", "\n"));
+        assertEquals("1.0", outContent.toString().replace("\r\n", "\n"));
     }
 
     // ==========================================
